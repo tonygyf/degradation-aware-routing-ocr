@@ -31,7 +31,7 @@ class Paddle:
             device="cpu",
             cpu_threads=1,
             enable_mkldnn=True,
-            text_recognition_batch_size=1,
+            text_recognition_batch_size=6,
         )
 
     def infer(self, image: Path) -> dict:
@@ -225,7 +225,7 @@ def collect(args) -> None:
         "workers": args.workers,
         "cpu_threads_per_ocr_worker": 1,
         "ocr_mkldnn_enabled": True,
-        "ocr_recognition_batch_size": 1,
+        "ocr_recognition_batch_size": 6,
         "max_tasks_per_ocr_pool": 8,
         "seed": 42,
         "warmup": "none; first-request overhead included, model loading excluded",
