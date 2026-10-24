@@ -1,0 +1,20 @@
+{
+  "reviewed": false,
+  "data_authorized": false,
+  "dataset_license": "REQUIRED: license and permitted uses",
+  "dataset_source": "REQUIRED: source/version and collection permission",
+  "split_protocol": "REQUIRED: source-image groups and locked split hash",
+  "paddleocr_package": "3.2.0",
+  "paddlepaddle_package": "3.2.0",
+  "paddle_detection_dir": "models/REQUIRED-local-detection",
+  "paddle_recognition_dir": "models/REQUIRED-local-recognition",
+  "ocr_model_revision": "REQUIRED: exact detector/recognizer IDs and artifact hashes",
+  "ocr_model_license": "REQUIRED",
+  "qwen_model_id": "REQUIRED: exact served Qwen-VL ID",
+  "qwen_revision": "REQUIRED: immutable checkpoint commit/hash",
+  "qwen_model_license": "REQUIRED",
+  "qwen_endpoint": "http://127.0.0.1:8000/v1/chat/completions",
+  "serving_version": "REQUIRED: server/container and dependencies",
+  "resources": "REQUIRED: CPU/RAM, endpoint owner, GPU reservation and VRAM estimate",
+  "device": "cpu"
+}

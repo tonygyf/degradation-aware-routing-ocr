@@ -1,0 +1,13 @@
+{
+  "name": "baseline-b-mlp",
+  "seed": 42,
+  "backend": "cached",
+  "manifest": "data/fixtures/observations.jsonl",
+  "eval_split": "test",
+  "router": "mlp",
+  "decision_threshold": 0.5,
+  "max_calls": 16,
+  "max_cost_units": 16.0,
+  "cost_per_call": 1.0,
+  "latency_kind": "synthetic_cached_ms_excludes_routing"
+}
