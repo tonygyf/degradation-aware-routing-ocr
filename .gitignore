@@ -21,3 +21,7 @@ models/*
 *.pth
 *.pdparams
 *.pkl
+*.ckpt
+*.onnx
+*.pem
+*.key

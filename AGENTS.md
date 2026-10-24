@@ -1,5 +1,7 @@
 # Project guardrails
 
+- Use `docker compose run --rm dev ...` for all development, checks and experiments. Rebuild with `docker compose build dev` after dependency changes; do not create host virtual environments or install project packages on the host.
+- On Linux, export `LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)` before Compose commands so generated files remain owned by the developer. Do not mount the Docker socket, SSH keys or host credentials into the container.
 - This is an independent research project. Do not modify sibling projects or existing containers.
 - Stage 1 uses CPU only. Never stop or reuse running training processes. Recheck resources before real inference.
 - Do not download model weights implicitly. Record model revisions, licenses, data authorization and resource needs before real inference.

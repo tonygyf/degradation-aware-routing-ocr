@@ -1,13 +1,29 @@
-# 环境检查记录（2026-10-24，Asia/Shanghai）
+# Docker 开发环境
 
-Windows 起始目录不是 Git 仓库，无已有项目源码；没有发现适用的上层 AGENTS.md。Python 3.10.11、Git、uv 0.12.13 可用。RTX 4060 Laptop 8 GB，在首次检查约使用 864 MiB，未用于本项目。系统环境有 NumPy/sklearn/Torch，缺 PaddleOCR/Paddle/Transformers/pytest/ruff；本项目创建独立 `.venv`，未修改系统包。
+2026-10-24（Asia/Shanghai）起，开发、测试和实验统一在本项目 Docker 环境中执行。宿主机只需要 Git、Docker Engine 和 Compose v2，不安装项目 Python 依赖。原 Windows/Ubuntu 虚拟环境记录为历史验证，不再是开发入口。
 
-已有 SSH 配置将 `10.8.176.211` 映射到授权用户 gyf，使用既有 host key 和 BatchMode 成功连接。目标 Ubuntu 主机 x4rx6000d-MS03-CE0-000，系统 Python 3.12.3，没有 pip/ensurepip，四块 NVIDIA RTX 6000D（约 85,651 MiB/块），251 GiB 内存，home 所在盘约 2.7 TB 可用。
+## 使用
 
-首次检查 GPU 2 上有 Python PID 4080287，约 24,300 MiB 显存、84% GPU 利用率；进程 cwd 为 /workspace，解释器为容器 /opt/conda/bin/python3.11，有活跃 pt_data_worker。其他卡的瞬时空闲不构成资源授权；本次一律 CPU。
+Linux 在项目根目录执行：
 
-运行中的科研容器包括 extremeocr-research-1、seeread-v5-gpu3-20261022、seeread-v5-run-20261020b、seeread-v5-det-20261020、seeread-v5-20261020 和 seeread-research-20261019。**没有进入容器安装包、停止进程、改变 GPU 设置或重启服务。**
+```bash
+export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
+docker compose build dev
+docker compose run --rm dev bash
+```
 
-只读检查了 /home/gyf/seeread_project 与 /home/gyf/DarkText-private 的目录、Git 状态；都已有大量未提交修改，因此没有复用或改写。新项目独立放在 /home/gyf/degradation-aware-routing-ocr，CPU 单线程运行测试。没有读取 .env、私钥或令牌内容。
+容器内执行 `python -m pytest -q`、`ruff check .`、`ruff format --check .`、`python -m scripts.smoke`。也可以像 README 中一样直接用 Compose 执行单条命令。Windows Docker Desktop 可跳过 UID/GID 设置；默认 1000:1000。源码挂载到 `/workspace`，输出写入宿主项目，退出即删除临时容器。不要使用全局 `docker system prune` 或操作其他项目的容器。
 
-服务器项目专用 `.tools/uv` 来源为 PyPI uv==0.12.13 Linux wheel，下载时核对 PyPI SHA-256；不是向系统安装软件。隔离环境由 uv 建立，只安装 requirements.lock/uv.lock 指定的轻量 CPU 依赖。最终环境快照见 docs/environment-server.json、docs/environment-windows.json。
+## 依赖与资源
+
+- 基础镜像为 `python:3.12-slim-bookworm`，在 Dockerfile 中固定 SHA-256 摘要。Git 用于记录实验提交版本。
+- `requirements.lock` 固定依赖版本和分发哈希；构建使用 `pip --require-hashes --only-binary=:all:`，禁用 pip 缓存，不安装模型运行时或权重。`uv.lock` 保留为原始依赖锁记录。
+- 新增依赖需同时更新 `pyproject.toml` 与锁文件，重新构建并运行四项基线检查；所有依赖维护也在容器中进行。
+- Compose 限制 2 个 CPU、4 GiB 内存，数值计算单线程。不申请 GPU，`CUDA_VISIBLE_DEVICES` 为空，`NVIDIA_VISIBLE_DEVICES=void`。没有复用既有科研容器，也没有停止训练进程。
+- 仅挂载项目目录，不挂载 Docker socket、SSH 目录、宿主凭据或其他科研目录。Git 推送在宿主机通过既有 SSH 密钥执行。
+- `.dockerignore` 排除私有数据、模型、输出、密钥、Git 历史和宿主缓存。Compose 开发挂载仍可访问项目内的本地数据，因此不要将此开发镜像当作隔离不可信代码的沙箱。
+- 第一阶段测试和 smoke 只使用自制 fixtures 与 mock 观测，不构成科学证据。真实推理仍须先登记模型版本、许可证、数据授权及资源需求，并重新检查资源。
+
+## 清理
+
+Docker 检查通过后可删除本项目旧 `.venv/`、`.tools/`、`.pytest_cache/`、`.ruff_cache/`、`__pycache__/` 和 `*.egg-info/`。容器禁写 Python 字节码，pytest/ruff 禁用项目缓存。实验输出保留本地且不进入 Git；不要删除真实数据或模型来清理软件缓存。

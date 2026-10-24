@@ -1,0 +1,18 @@
+name: degradation-aware-routing-ocr
+
+services:
+  dev:
+    build: .
+    image: degradation-aware-routing-ocr:dev
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      PYTEST_ADDOPTS: "-p no:cacheprovider"
+      RUFF_NO_CACHE: "true"
+    cpus: 2
+    mem_limit: 4g
+    init: true
+    stdin_open: true
+    tty: true

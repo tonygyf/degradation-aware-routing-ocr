@@ -1,6 +1,6 @@
 # 第一阶段交付验收
 
-验收日期：2026-10-24（Asia/Shanghai）。目标为独立 Ubuntu 项目，Windows 为运行与交付副本。
+验收日期：2026-10-24（Asia/Shanghai）。下文为迁移 Docker 前的历史验收；当前统一开发入口见 [Docker 环境](environment.md)。
 
 | 检查 | Windows Python 3.10.11 | Ubuntu Python 3.12.3 |
 |---|---|---|
@@ -43,3 +43,19 @@ Paddle/Qwen 的测试使用伪响应，不是实际模型推理。loopback Qwen 
 - 真实失败重试/恢复、token 级预算、线上服务延迟、近重复人工审计与可信幻觉标注留给后续实验。
 
 下一步先执行 protocol.md 的小规模真实接口验证，再按 roadmap.md 建立同预算对比和 C/D 消融。
+
+## Docker 迁移验收（2026-10-24）
+
+通过本项目 Compose `dev` 服务在容器中执行：
+
+| 检查 | 结果 |
+|---|---|
+| `docker compose build dev` | 成功；固定基础镜像摘要，依赖哈希校验与 `pip check` 通过 |
+| `python -m pytest -q` | 19 passed |
+| `ruff check .` | 通过 |
+| `ruff format --check .` | 22 个文件格式正确 |
+| `python -m scripts.smoke` | A/B/MLP 全部完成，样例指标与原验收一致 |
+
+已删除本项目旧 `.venv`、`.tools`（含下载包、安装暂存和 uv 缓存）、pytest/ruff 缓存、Python 字节码和 editable 包元数据，约 607 MiB。依赖锁、实验配置、fixtures、历史验收记录和本地实验输出保留。后续检查同样使用 Docker，避免重新创建宿主虚拟环境。
+
+此验收仍只证明软件流程可运行，没有运行真实模型或下载权重。
