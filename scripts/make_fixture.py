@@ -56,8 +56,8 @@ def main():
                 }
             )
     manifest = ROOT / "data/fixtures/observations.jsonl"
-    manifest.write_text(
-        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8"
+    manifest.write_bytes(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows).encode("utf-8")
     )
     print(manifest)
 

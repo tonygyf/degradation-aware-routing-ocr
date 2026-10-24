@@ -112,7 +112,7 @@ class QwenVLHTTPAdapter:
                 raise ValueError("Redirects are disabled for image privacy")
 
         start = time.perf_counter()
-        opener = urllib.request.build_opener(NoRedirect)
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
         with opener.open(request, timeout=self.timeout) as response:
             result = json.load(response)
         text = result["choices"][0]["message"]["content"]

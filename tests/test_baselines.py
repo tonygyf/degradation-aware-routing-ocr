@@ -137,5 +137,9 @@ def test_run_outputs_and_reproducibility(name, tmp_path):
     for key in ("cer_micro", "vlm_calls", "declared_cost_units", "insertion_proxy"):
         assert one[key] == two[key]
     assert one["samples"] == 16
+    if name == "baseline_a":
+        assert one["vlm_calls"] == 12
+        assert one["edit_count"] == 26
+        assert one["reference_characters"] == 210
     assert json.loads((first / "metadata.json").read_text())["manifest_sha256"]
     assert (first / "run.log").is_file()
