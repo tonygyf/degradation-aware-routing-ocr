@@ -1,0 +1,46 @@
+{
+  "paper": "https://doi.org/10.1007/s10032-026-00620-7",
+  "paper_checkpoint_identity_known": false,
+  "identity_note": "Author package is unavailable. These are pinned official candidates, not verified author checkpoint hashes.",
+  "data_authorization": "User requested the public CC-OCR research experiment on 2026-10-24; see configs/ccocr_public.json",
+  "resources": {
+    "cpu_cores": 8,
+    "ram_gib": 64,
+    "disk_gib_estimate": 25,
+    "gpu_authorized": true,
+    "gpu_plan": "User authorized this public CC-OCR experiment on host GPU 1 only; 8 CPU cores, 64 GiB RAM, estimated 24-40 GiB VRAM",
+    "authorization": {
+      "date": "2026-10-24",
+      "scope": "Public CC-OCR / Qwen3-VL-8B only",
+      "host_gpu_index": 1,
+      "user_reply": "允许，仅本次实验使用 GPU 1（推荐）",
+      "host_gpu_uuid": "GPU-b7840eb5-b19b-62cc-0ddd-b09bd56c4309"
+    }
+  },
+  "prompt": "Extract all text from this image. Provide the text exactly as it appears.",
+  "max_new_tokens": 2048,
+  "decoding": "greedy, batch size 1; token limit is our frozen choice because author setting is unavailable",
+  "models": [
+    {
+      "role": "detector",
+      "repository": "PaddlePaddle/PP-OCRv5_server_det",
+      "revision": "ca867c897ecbca8873081573a802ad70d499cb94",
+      "license": "apache-2.0",
+      "directory": "models/ccocr/detector"
+    },
+    {
+      "role": "recognizer",
+      "repository": "PaddlePaddle/PP-OCRv5_server_rec",
+      "revision": "b26c3587fda8da3c8ec0ce357214b4d661ff1558",
+      "license": "apache-2.0",
+      "directory": "models/ccocr/recognizer"
+    },
+    {
+      "role": "vlm",
+      "repository": "Qwen/Qwen3-VL-8B-Instruct",
+      "revision": "0c351dd01ed87e9c1b53cbc748cba10e6187ff3b",
+      "license": "apache-2.0",
+      "directory": "models/ccocr/qwen"
+    }
+  ]
+}

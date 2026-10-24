@@ -211,6 +211,26 @@ def test_collector_resumes_empty_partial_and_checks_local_artifacts(tmp_path, mo
     artifact.write_bytes(b"changed")
     with pytest.raises(ValueError, match="Model artifact changed"):
         collect_ccocr.collect(args)
+    artifact.write_bytes(b"reviewed weights")
+    spec = json.loads(registry.read_text())
+    spec["models"].append({"role": "vlm", "revision": "pinned", "directory": str(tmp_path)})
+    registry.write_text(json.dumps(spec))
+    args.ocr_observations = args.output / "observations.jsonl"
+    args.output, args.resume, args.mode = tmp_path / "combined", False, "both"
+    FakePaddle.fail = True
+
+    class FakeQwen:
+        def __init__(self, model, registry, device):
+            pass
+
+        def infer(self, image):
+            return {"text": "Qwen result", "latency_ms": 2}
+
+    monkeypatch.setattr(collect_ccocr, "Qwen", FakeQwen)
+    collect_ccocr.collect(args)
+    combined = json.loads((args.output / "observations.jsonl").read_text())
+    assert combined["ocr"]["text"] == "A"
+    assert combined["vlm"]["text"] == "Qwen result"
 
 
 def test_paper_metrics_use_clipped_whitespace_normalized_macro_cer():

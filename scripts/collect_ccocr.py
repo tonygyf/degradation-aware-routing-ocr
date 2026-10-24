@@ -30,7 +30,8 @@ class Paddle:
             use_textline_orientation=False,
             device="cpu",
             cpu_threads=1,
-            enable_mkldnn=False,
+            enable_mkldnn=True,
+            text_recognition_batch_size=1,
         )
 
     def infer(self, image: Path) -> dict:
@@ -49,11 +50,39 @@ class Paddle:
 
 class Qwen:
     def __init__(self, model: dict, registry: dict, device: str):
+        if device.startswith("cuda"):
+            gpu = registry["resources"]["authorization"]["host_gpu_uuid"]
+            processes = subprocess.check_output(
+                ["nvidia-smi", "-i", gpu, "--query-compute-apps=pid", "--format=csv,noheader"],
+                text=True,
+            ).strip()
+            free_mib = int(
+                subprocess.check_output(
+                    [
+                        "nvidia-smi",
+                        "-i",
+                        gpu,
+                        "--query-gpu=memory.free",
+                        "--format=csv,noheader,nounits",
+                    ],
+                    text=True,
+                ).strip()
+            )
+            if processes or free_mib < 40 * 1024:
+                raise ValueError(
+                    "Authorized GPU is busy or has less than 40 GiB free; "
+                    "leave other work untouched"
+                )
         import torch
         from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
 
         torch.manual_seed(42)
         self.device, self.torch = device, torch
+        if device.startswith("cuda"):
+            expected = registry["resources"]["authorization"]["host_gpu_uuid"].removeprefix("GPU-")
+            actual = str(torch.cuda.get_device_properties(0).uuid).removeprefix("GPU-")
+            if torch.cuda.device_count() != 1 or actual != expected:
+                raise ValueError("GPU allocation differs from the single authorized device")
         self.prompt, self.max_tokens = registry["prompt"], registry["max_new_tokens"]
         self.processor = AutoProcessor.from_pretrained(
             model["directory"], local_files_only=True, trust_remote_code=False
@@ -138,7 +167,22 @@ def parallel_ocr(images, models, workers):
             yield from pool.map(infer_ocr_worker, images[start : start + 8])
 
 
+def cached_ocr(path, rows):
+    cached = {row["id"]: row for row in load_manifest(path)}
+    for row in rows:
+        source = cached.get(row["id"])
+        if source is None or any(
+            source.get(key) != row.get(key)
+            for key in ("image_sha256", "reference", "group_id", "split", "synthetic")
+        ):
+            raise ValueError(f"OCR cache does not match frozen sample: {row['id']}")
+    return cached
+
+
 def collect(args) -> None:
+    ocr_path = getattr(args, "ocr_observations", None)
+    if ocr_path and args.mode != "both":
+        raise ValueError("OCR observations can only be reused for combined Qwen collection")
     if args.workers > 1 and args.mode != "ocr":
         raise ValueError("Parallel workers are only supported for CPU OCR collection")
     registry = json.loads(args.registry.read_text(encoding="utf-8"))
@@ -170,6 +214,7 @@ def collect(args) -> None:
         image = args.manifest.parent / row["image"]
         if file_hash(image) != row["image_sha256"]:
             raise ValueError(f"Image changed: {row['id']}")
+    cached = cached_ocr(ocr_path, rows) if ocr_path else None
     meta = {
         "manifest_sha256": file_hash(args.manifest),
         "registry_sha256": file_hash(args.registry),
@@ -179,6 +224,8 @@ def collect(args) -> None:
         "per_subset": args.per_subset,
         "workers": args.workers,
         "cpu_threads_per_ocr_worker": 1,
+        "ocr_mkldnn_enabled": True,
+        "ocr_recognition_batch_size": 1,
         "max_tasks_per_ocr_pool": 8,
         "seed": 42,
         "warmup": "none; first-request overhead included, model loading excluded",
@@ -190,6 +237,9 @@ def collect(args) -> None:
             for name in ("paddleocr", "paddlepaddle", "transformers", "torch")
         },
     }
+    if ocr_path:
+        meta["ocr_observations_sha256"] = file_hash(ocr_path)
+        meta["ocr_latency_note"] = "Reused CPU OCR timing; see source collection metadata"
     args.output.mkdir(parents=True, exist_ok=args.resume)
     metadata = args.output / "metadata.json"
     if args.resume:
@@ -211,15 +261,19 @@ def collect(args) -> None:
         for row in completed
     ):
         raise ValueError("Resume observations differ from the selected frozen samples")
-    paddle = Paddle(models) if args.workers == 1 else None
+    paddle = Paddle(models) if args.workers == 1 and cached is None else None
     qwen = Qwen(models["vlm"], registry, args.device) if args.mode == "both" else None
     pending = [row for row in rows if row["id"] not in done]
     images = [str((args.manifest.parent / row["image"]).resolve()) for row in pending]
     with partial.open("a" if args.resume else "x", encoding="utf-8") as handle:
         observations = (
-            parallel_ocr(images, models, args.workers)
-            if args.workers > 1
-            else map(lambda image: paddle.infer(Path(image)), images)
+            (cached[row["id"]]["ocr"] for row in pending)
+            if cached is not None
+            else (
+                parallel_ocr(images, models, args.workers)
+                if args.workers > 1
+                else map(lambda image: paddle.infer(Path(image)), images)
+            )
         )
         for row, image, ocr in zip(pending, images, observations, strict=True):
             observation = {
@@ -248,6 +302,7 @@ def main():
     parser.add_argument("--device", choices=("cpu", "cuda:0"), default="cpu")
     parser.add_argument("--per-subset", type=int, default=0)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--ocr-observations", type=Path)
     parser.add_argument("--workers", type=int, default=1, choices=range(1, 3))
     args = parser.parse_args()
     if args.per_subset < 0:
