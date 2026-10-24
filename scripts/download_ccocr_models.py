@@ -78,7 +78,8 @@ def snapshot(spec: dict) -> None:
                 http.client.IncompleteRead,
             ) as error:
                 print(
-                    f"Transport retry {attempt + 1}/4: {repository}/{item['rfilename']} ({type(error).__name__})",
+                    f"Transport retry {attempt + 1}/4: {repository}/{item['rfilename']} "
+                    f"({type(error).__name__})",
                     flush=True,
                 )
                 if attempt == 3:
