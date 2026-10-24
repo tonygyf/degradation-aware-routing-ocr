@@ -1,0 +1,15 @@
+# Activate only after an explicit exception to the CPU-only project guardrail.
+# Host GPU 1 appears as cuda:0 inside this new container.
+services:
+  dev:
+    environment:
+      CUDA_VISIBLE_DEVICES: "0"
+      NVIDIA_VISIBLE_DEVICES: "1"
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["1"]
+              capabilities: [gpu]

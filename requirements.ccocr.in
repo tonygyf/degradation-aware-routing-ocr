@@ -1,0 +1,4 @@
+-r requirements.lock
+paddleocr==3.4.0
+paddlepaddle==3.2.2
+transformers==4.57.6

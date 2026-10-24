@@ -1,0 +1,32 @@
+# The local 25.12 image is recorded by ID in each real-run environment report.
+FROM nvcr.io/nvidia/pytorch:25.12-py3
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/opt/ccocr \
+    CUDA_VISIBLE_DEVICES="" \
+    NVIDIA_VISIBLE_DEVICES=void \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    PADDLE_PDX_CACHE_HOME=/tmp/paddlex \
+    PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
+    HF_HOME=/tmp/huggingface \
+    XDG_CACHE_HOME=/tmp/cache \
+    TORCH_HOME=/tmp/torch \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
+
+# Keep the cached NVIDIA base and its Torch/CUDA installation intact.
+COPY requirements.ccocr.lock /tmp/requirements.ccocr.lock
+RUN PIP_CONSTRAINT= python -m pip install --target /opt/ccocr --no-cache-dir \
+    --no-deps --require-hashes --only-binary=:all: -r /tmp/requirements.ccocr.lock
+RUN sed -i 's/^Components:.*/Components: main/' /etc/apt/sources.list.d/ubuntu.sources \
+    && apt-get -o Acquire::http::Timeout=30 update \
+    && apt-get -o Acquire::http::Timeout=30 install -y --no-install-recommends libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+ENV MPLCONFIGDIR=/tmp/matplotlib
+
+WORKDIR /workspace
+COPY . .
+CMD ["bash"]

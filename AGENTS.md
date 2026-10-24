@@ -1,5 +1,6 @@
 # Project guardrails
 
+- Apply the installed `ponytail` and `grill-me` skills throughout this project's work. Inspect available evidence first, keep implementations minimal, and resolve material unknowns one question at a time while continuing independent work.
 - Use `docker compose run --rm dev ...` for all development, checks and experiments. Rebuild with `docker compose build dev` after dependency changes; do not create host virtual environments or install project packages on the host.
 - On Linux, export `LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)` before Compose commands so generated files remain owned by the developer. Do not mount the Docker socket, SSH keys or host credentials into the container.
 - This is an independent research project. Do not modify sibling projects or existing containers.

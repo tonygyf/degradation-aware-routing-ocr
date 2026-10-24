@@ -1,6 +1,6 @@
 # Degradation-Aware Region Routing OCR
 
-低光照区域级 OCR/VLM 选择性路由。**第一阶段交付：可运行的 CPU 离线基线；样例预测为人工构造，不能作为模型效果或论文证据。** 没有下载 PaddleOCR/Qwen 权重，没有进行真实 GPU 推理。
+低光照区域级 OCR/VLM 选择性路由。现有 A/B 样例为人工构造，仅作软件检查；另推进 IJDAR 2026 论文的公开 CC-OCR 900 张外部实验，数据与官方 Paddle 权重已下载并校验，Qwen 权重显式下载中。真实实验入口、冻结协议及复现差异见 [CC-OCR 复现](docs/ccocr-reproduction.md)。
 
 后续开发、测试和实验统一使用本项目独立的 Docker 环境（Python 3.12、CPU），不再依赖宿主机虚拟环境。
 

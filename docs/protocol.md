@@ -23,7 +23,7 @@
 ## 真实模型登记与采集（尚未执行）
 
 1. 将 `configs/models.example.json` 复制为独立登记文件，填写真实数据授权/来源/划分、模型 ID、不可变 revision/文件哈希、模型许可、服务版本、资源与设备预留。完成审核后才设置 reviewed 和 data_authorized。模板没有预填虚构模型 revision。
-2. OCR 接口目标为 `paddleocr==3.2.0`、CPU `paddlepaddle==3.2.0`，只接收已有本地 detector/recognizer 目录，关闭方向/矫正辅助模型。**适配器只做了伪响应契约测试，尚未验证真实版本兼容性**。真实依赖未纳入已验证的轻量环境；应另建 `.venv-real` 并生成该平台完整哈希锁文件，不在现有科研环境安装。
+2. 原软件基线 OCR 接口目标为 `paddleocr==3.2.0`、CPU `paddlepaddle==3.2.0`，只接收已有本地 detector/recognizer 目录，关闭方向/矫正辅助模型。**适配器只做了伪响应契约测试，尚未验证真实版本兼容性**。真实依赖需通过独立 Docker 构建配置与锁文件维护，使用 Compose `dev` 服务覆盖配置运行，不再建立宿主虚拟环境。IJDAR 论文复现需要单独对齐 PaddleOCR 3.4.0，不能将旧适配器的 mock 检查当作版本兼容证据。
 3. Qwen-VL 使用已有 OpenAI-compatible loopback 服务，如 SSH 转发后的 `http://127.0.0.1:8000/v1/chat/completions`；填写服务实际 model ID 和 checkpoint revision。代码不启动服务、不下载权重、不自动选择 GPU。请求 temperature=0，但 GPU/服务实现仍可能非确定。服务端应另记录 seed、图像分辨率、max_tokens=1024、提示词、推理引擎参数和 warmup。
 4. 在另一次只读检查确认无资源冲突后，由资源所有者分配服务 GPU。现有科研容器无论 GPU 是否瞬时空闲均不复用。OCR CPU 首次验证建议 2–4 CPU、4–8 GB RAM；Qwen 显存需求必须按实际模型/量化/分辨率测量，当前没有已测值，也没有预留 GPU。
 5. 用少量已授权 PNG/JPEG/WebP 写 raw 清单并实际计算文件 SHA-256，再冻结分组划分。原图/GT/缓存可能含敏感文本，只保存在私有目录；不要上传 Git。

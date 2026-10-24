@@ -1,0 +1,11 @@
+{
+  "repository": "wulipc/CC-OCR",
+  "revision": "c64517e92179991d509776064174776700cdd5a2",
+  "license": "MIT as declared by the CC-OCR distributor; original source-image terms still apply",
+  "authorization": "User requested public CC-OCR research reproduction on 2026-10-24",
+  "files": [
+    {"subset": "TotalText", "path": "multi_scene_ocr/scene_text/TotalText_300.tsv", "count": 300, "sha256": "5b9cc0586e5f5134ff5913e526fc77afd1f686b043e6eb47f73b512c32deee1b"},
+    {"subset": "InverseText", "path": "multi_scene_ocr/scene_text/InverseText_500.tsv", "count": 500, "sha256": "ce59f7805312879999ccef11016fb9adcf0b55408baf8ecdddadd7ae1e5d6a20"},
+    {"subset": "Hieragent", "path": "multi_scene_ocr/scene_text/Hieragent_100.tsv", "count": 100, "sha256": "809fbfc8ed0e6ade16ee20983addc43a6ae514d1b00773fe11b527eb0ec741bf"}
+  ]
+}

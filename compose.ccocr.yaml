@@ -1,0 +1,10 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.ccocr
+    image: degradation-aware-routing-ocr:ccocr
+    cpus: 8
+    mem_limit: 64g
+    environment:
+      LOGNAME: ccocr
