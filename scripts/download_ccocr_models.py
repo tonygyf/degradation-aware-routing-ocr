@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import http.client
 import json
 import shutil
+import time
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -37,7 +40,7 @@ def snapshot(spec: dict) -> None:
     provenance = root / "download-provenance.json"
     provenance.write_text(json.dumps(record, indent=2), encoding="utf-8")
 
-    def fetch(item):
+    def fetch_once(item):
         name = item["rfilename"]
         path = root / name
         if Path(name).is_absolute() or ".." in Path(name).parts:
@@ -62,6 +65,28 @@ def snapshot(spec: dict) -> None:
             if not path.exists():
                 path.write_bytes(data)
         item["local_sha256"] = file_hash(path)
+
+    def fetch(item):
+        for attempt in range(4):
+            try:
+                fetch_once(item)
+                return
+            except (
+                urllib.error.URLError,
+                TimeoutError,
+                ConnectionError,
+                http.client.IncompleteRead,
+            ) as error:
+                print(
+                    f"Transport retry {attempt + 1}/4: {repository}/{item['rfilename']} ({type(error).__name__})",
+                    flush=True,
+                )
+                if attempt == 3:
+                    raise
+                time.sleep(2**attempt)
+            except Exception as error:
+                print(f"Artifact rejected: {repository}/{item['rfilename']}: {error}", flush=True)
+                raise
 
     # Separate shards can progress independently; each is still checked before acceptance.
     with ThreadPoolExecutor(max_workers=4) as pool:

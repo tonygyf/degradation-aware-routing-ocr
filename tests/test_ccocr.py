@@ -3,6 +3,7 @@ import csv
 import hashlib
 import io
 import json
+import urllib.error
 from types import SimpleNamespace
 
 import pytest
@@ -94,17 +95,23 @@ def test_model_snapshot_checks_identity_and_artifact_bytes(tmp_path, monkeypatch
         ],
     }
     transports = []
+    failed_once = False
 
     def respond(url, timeout):
+        nonlocal failed_once
         if not isinstance(url, str):
             transports.append(url.full_url)
             response = io.BytesIO(weights)
             response.status = 206
             response.headers = {"Content-Range": f"bytes 0-{len(weights) - 1}/{len(weights)}"}
             return response
+        if "/resolve/" in url and not failed_once:
+            failed_once = True
+            raise urllib.error.URLError("temporary transport failure")
         return io.BytesIO(json.dumps(metadata).encode() if "/api/" in url else content)
 
     monkeypatch.setattr("urllib.request.urlopen", respond)
+    monkeypatch.setattr("scripts.download_ccocr_models.time.sleep", lambda seconds: None)
     spec = {
         "repository": "owner/model",
         "revision": "fixed-revision",

@@ -34,7 +34,7 @@ docker compose -f compose.yaml -f compose.ccocr.yaml build dev
 export CCOCR_IMAGE_ID=$(docker image inspect degradation-aware-routing-ocr:ccocr --format '{{.Id}}')
 docker compose -f compose.yaml -f compose.ccocr.yaml run --rm -T -e CCOCR_IMAGE_ID dev python -m scripts.collect_ccocr --mode ocr --per-subset 1 --output outputs/ccocr-ocr-pilot
 docker compose -f compose.yaml -f compose.ccocr.yaml run --rm -T -e CCOCR_IMAGE_ID dev python -m scripts.collect_ccocr --mode ocr --workers 2 --output outputs/ccocr-ocr-full-bounded
-docker compose run --rm -T dev python -m src.ccocr --observations outputs/ccocr-ocr-full/observations.jsonl --output outputs/ccocr-ocr-full-eval
+docker compose run --rm -T dev python -m src.ccocr --observations outputs/ccocr-ocr-full-bounded/observations.jsonl --output outputs/ccocr-ocr-full-bounded-eval
 ```
 
 完整模型下载校验后可在 CPU 用 `--mode both` 采集两种模型。中断使用完全相同命令并加 `--resume`；配置、模型、数据、依赖或 Git 提交变化时拒绝混合续跑。`--per-subset` 只做运行检查，评估报告会标记非完整 900 张，不能用它声称论文结果。
@@ -56,3 +56,5 @@ docker compose run --rm -T dev python -m src.ccocr --observations outputs/ccocr-
 900 张数据及 Paddle det/rec 权重均已完成哈希校验。真实 CPU pilot 在三个子集各取第一张，串行与 3 个进程采集的文本、置信度完全相同；3 张仅验证流程，不能据此判断论文分数是否复现。Qwen 运行库导入通过，权重尚在显式断点下载。新增下载续传、模型身份与哈希、GPU 授权前置检查、空输出中断续跑及指标边界测试。
 
 8 进程全量试跑在完成 60 张后触发本项目 64 GiB 容器内存上限，完整日志和已采集观测保留本地。改为最多 2 个进程、每批 8 张重建。MKLDNN 打开时首张文本相同，但不混用该探测的观测；正式采集仍使用关闭设置。ModelScope 官方模型镜像可显式选用以避开 HF 下载慢的问题，最终仍必须匹配已冻结的 HF 文件 SHA-256；镜像 master 发生变化会被拒绝。Eval-Trans 已对照固定上游源码，逐图计算完全相同，汇总也保留官方分母 `+1e-9`。
+
+1000 组固定 seed 随机文本与官方宏平均 Eval-Trans 的交叉校验差异为 0（记录在本地 `outputs/reproduction-sources/evaluator-crosscheck.json`）。修正后的全量采集位于 `outputs/ccocr-ocr-full-bounded/`，成功后自动触发评估到 `outputs/ccocr-ocr-full-bounded-eval/`；等待评估的容器最长运行 4 小时。模型下载对临时网络错误最多重试 4 次，保留续传文件；哈希错误直接拒绝。
