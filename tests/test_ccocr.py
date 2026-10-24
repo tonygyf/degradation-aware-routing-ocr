@@ -74,6 +74,7 @@ def test_model_snapshot_checks_identity_and_artifact_bytes(tmp_path, monkeypatch
     from scripts.download_ccocr_models import snapshot
 
     content = b'{"model": "reviewed"}'
+    weights = b"reviewed weights"
     metadata = {
         "sha": "fixed-revision",
         "cardData": {"license": "apache-2.0"},
@@ -84,11 +85,23 @@ def test_model_snapshot_checks_identity_and_artifact_bytes(tmp_path, monkeypatch
                 "blobId": hashlib.sha1(
                     b"blob " + str(len(content)).encode() + b"\0" + content
                 ).hexdigest(),
-            }
+            },
+            {
+                "rfilename": "weights.safetensors",
+                "size": len(weights),
+                "lfs": {"sha256": hashlib.sha256(weights).hexdigest()},
+            },
         ],
     }
+    transports = []
 
     def respond(url, timeout):
+        if not isinstance(url, str):
+            transports.append(url.full_url)
+            response = io.BytesIO(weights)
+            response.status = 206
+            response.headers = {"Content-Range": f"bytes 0-{len(weights) - 1}/{len(weights)}"}
+            return response
         return io.BytesIO(json.dumps(metadata).encode() if "/api/" in url else content)
 
     monkeypatch.setattr("urllib.request.urlopen", respond)
@@ -97,9 +110,14 @@ def test_model_snapshot_checks_identity_and_artifact_bytes(tmp_path, monkeypatch
         "revision": "fixed-revision",
         "license": "apache-2.0",
         "directory": str(tmp_path),
+        "weight_mirror": "modelscope",
     }
     snapshot(spec)
     assert json.loads((tmp_path / "download-provenance.json").read_text())["status"] == "verified"
+    assert transports == [
+        "https://www.modelscope.cn/models/owner/model/resolve/master/weights.safetensors"
+    ]
+    assert (tmp_path / "weights.safetensors").read_bytes() == weights
     (tmp_path / "config.json").write_bytes(b"corrupt")
     with pytest.raises(ValueError, match="Git blob hash mismatch"):
         snapshot(spec)

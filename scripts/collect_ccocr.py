@@ -9,7 +9,6 @@ import os
 import subprocess
 import time
 from concurrent.futures import ProcessPoolExecutor
-from contextlib import nullcontext
 from multiprocessing import get_context
 from pathlib import Path
 
@@ -127,6 +126,18 @@ def infer_ocr_worker(image):
     return _worker_paddle.infer(Path(image))
 
 
+def parallel_ocr(images, models, workers):
+    # Recreate predictors in bounded batches to release native inference caches.
+    for start in range(0, len(images), 8):
+        with ProcessPoolExecutor(
+            max_workers=workers,
+            mp_context=get_context("spawn"),
+            initializer=init_ocr_worker,
+            initargs=(models,),
+        ) as pool:
+            yield from pool.map(infer_ocr_worker, images[start : start + 8])
+
+
 def collect(args) -> None:
     if args.workers > 1 and args.mode != "ocr":
         raise ValueError("Parallel workers are only supported for CPU OCR collection")
@@ -168,6 +179,7 @@ def collect(args) -> None:
         "per_subset": args.per_subset,
         "workers": args.workers,
         "cpu_threads_per_ocr_worker": 1,
+        "max_tasks_per_ocr_pool": 8,
         "seed": 42,
         "warmup": "none; first-request overhead included, model loading excluded",
         "counterfactual_vlm_collection": args.mode == "both",
@@ -203,20 +215,10 @@ def collect(args) -> None:
     qwen = Qwen(models["vlm"], registry, args.device) if args.mode == "both" else None
     pending = [row for row in rows if row["id"] not in done]
     images = [str((args.manifest.parent / row["image"]).resolve()) for row in pending]
-    pool = (
-        ProcessPoolExecutor(
-            max_workers=args.workers,
-            mp_context=get_context("spawn"),
-            initializer=init_ocr_worker,
-            initargs=(models,),
-        )
-        if args.workers > 1
-        else nullcontext()
-    )
-    with pool as executor, partial.open("a" if args.resume else "x", encoding="utf-8") as handle:
+    with partial.open("a" if args.resume else "x", encoding="utf-8") as handle:
         observations = (
-            executor.map(infer_ocr_worker, images)
-            if executor is not None
+            parallel_ocr(images, models, args.workers)
+            if args.workers > 1
             else map(lambda image: paddle.infer(Path(image)), images)
         )
         for row, image, ocr in zip(pending, images, observations, strict=True):
@@ -246,7 +248,7 @@ def main():
     parser.add_argument("--device", choices=("cpu", "cuda:0"), default="cpu")
     parser.add_argument("--per-subset", type=int, default=0)
     parser.add_argument("--resume", action="store_true")
-    parser.add_argument("--workers", type=int, default=1, choices=range(1, 9))
+    parser.add_argument("--workers", type=int, default=1, choices=range(1, 3))
     args = parser.parse_args()
     if args.per_subset < 0:
         parser.error("--per-subset must be nonnegative")

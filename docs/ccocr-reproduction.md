@@ -20,7 +20,7 @@
 - 论文列出的 Transformers 4.46 早于 Qwen3-VL 支持。本项目使用 Transformers 4.57.6、直接 Torch/SDPA 推理，不宣称重建了作者的 vLLM 环境。Paddle CPU 禁用 MKLDNN，并显式设置每个实例 `cpu_threads=1`，避免与 Torch 混用时的 MKL 动态库错误。
 - 独立真实模型镜像基于本机缓存的 NVIDIA PyTorch 25.12（解析摘要 `sha256:b5541f591b87e68d3883040bfdbf89707bd6f80e2e38b95411c9ff3e1cb63eeb`），Python 3.12、Torch `2.10.0a0+b4e4ee8`；依赖使用 `requirements.ccocr.lock` 的精确版本和哈希。实际镜像 ID 通过 `CCOCR_IMAGE_ID` 写入运行元数据。基础 tag 若发生变化须重新核对摘要。
 - 默认真实实验仍为 CPU，8 核、64 GiB 内存；不向容器暴露 GPU、Docker socket、SSH 或宿主凭据。Qwen 权重约 17.5 GB。GPU 需先获得 CPU-only 约束的明确例外并重新检查资源；不能干扰 GPU 2 上既有训练。
-- 延迟包括单张预处理、推理及解码，不包括模型加载；无 warmup，因此保留首张开销。OCR 可用 `--workers 8` 并行采集，资源竞争会影响耗时；论文时间比较应使用串行 GPU 实验。先采集全部 OCR/VLM，再反事实回放 ConfRoute 的调用及串行耗时，并非在线调度实测。CPU/不同 GPU 的时间不可直接对照论文 RTX 4090。
+- 延迟包括单张预处理、推理及解码，不包括模型加载；无 warmup，因此保留首张开销。OCR 可用 `--workers 2` 并行采集，每批最多 8 张后重建进程以释放原生推理缓存；资源竞争及反复冷启动会影响耗时。先采集全部 OCR/VLM，再反事实回放 ConfRoute 的调用及串行耗时，并非在线调度实测。CPU/不同 GPU 的时间不可直接对照论文 RTX 4090。
 
 ## 命令
 
@@ -29,11 +29,11 @@
 ```bash
 export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
 docker compose run --rm -T dev python -m scripts.prepare_ccocr
-docker compose run --rm -T dev python -m scripts.download_ccocr_models --allow-download
+docker compose run --rm -T dev python -m scripts.download_ccocr_models --allow-download --weight-mirror modelscope
 docker compose -f compose.yaml -f compose.ccocr.yaml build dev
 export CCOCR_IMAGE_ID=$(docker image inspect degradation-aware-routing-ocr:ccocr --format '{{.Id}}')
 docker compose -f compose.yaml -f compose.ccocr.yaml run --rm -T -e CCOCR_IMAGE_ID dev python -m scripts.collect_ccocr --mode ocr --per-subset 1 --output outputs/ccocr-ocr-pilot
-docker compose -f compose.yaml -f compose.ccocr.yaml run --rm -T -e CCOCR_IMAGE_ID dev python -m scripts.collect_ccocr --mode ocr --workers 8 --output outputs/ccocr-ocr-full
+docker compose -f compose.yaml -f compose.ccocr.yaml run --rm -T -e CCOCR_IMAGE_ID dev python -m scripts.collect_ccocr --mode ocr --workers 2 --output outputs/ccocr-ocr-full-bounded
 docker compose run --rm -T dev python -m src.ccocr --observations outputs/ccocr-ocr-full/observations.jsonl --output outputs/ccocr-ocr-full-eval
 ```
 
@@ -54,3 +54,5 @@ docker compose run --rm -T dev python -m src.ccocr --observations outputs/ccocr-
 ## 2026-10-24 运行验证
 
 900 张数据及 Paddle det/rec 权重均已完成哈希校验。真实 CPU pilot 在三个子集各取第一张，串行与 3 个进程采集的文本、置信度完全相同；3 张仅验证流程，不能据此判断论文分数是否复现。Qwen 运行库导入通过，权重尚在显式断点下载。新增下载续传、模型身份与哈希、GPU 授权前置检查、空输出中断续跑及指标边界测试。
+
+8 进程全量试跑在完成 60 张后触发本项目 64 GiB 容器内存上限，完整日志和已采集观测保留本地。改为最多 2 个进程、每批 8 张重建。MKLDNN 打开时首张文本相同，但不混用该探测的观测；正式采集仍使用关闭设置。ModelScope 官方模型镜像可显式选用以避开 HF 下载慢的问题，最终仍必须匹配已冻结的 HF 文件 SHA-256；镜像 master 发生变化会被拒绝。Eval-Trans 已对照固定上游源码，逐图计算完全相同，汇总也保留官方分母 `+1e-9`。

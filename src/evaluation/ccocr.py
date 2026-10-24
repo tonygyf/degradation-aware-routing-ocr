@@ -58,7 +58,8 @@ def summarize(records: list[dict]) -> dict:
     latency = sorted(r["latency_ms"] for r in records)
     return {
         "samples": len(records),
-        "eval_trans": mean(eval_trans(r["reference"], r["prediction"]) for r in records),
+        "eval_trans": sum(eval_trans(r["reference"], r["prediction"]) for r in records)
+        / (len(records) + 1e-9),
         "cer_macro_clipped": mean(clipped_cer(r["reference"], r["prediction"]) for r in records),
         "empty_rate": mean(not normalize(r["prediction"]) for r in records),
         "vlm_call_rate": mean(r["vlm_called"] for r in records),

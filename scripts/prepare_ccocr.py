@@ -36,7 +36,7 @@ def download(url: str, path: Path, expected_sha256: str, size: int | None = None
         if position > size:
             raise ValueError("Partial download exceeds the reviewed artifact size")
         while position < size:
-            end = min(position + 64 * 1024 * 1024, size) - 1
+            end = min(position + 8 * 1024 * 1024, size) - 1
             request = urllib.request.Request(url, headers={"Range": f"bytes={position}-{end}"})
             with urllib.request.urlopen(request, timeout=60) as response:
                 match = re.fullmatch(

@@ -45,6 +45,9 @@ def snapshot(spec: dict) -> None:
         url = f"https://huggingface.co/{repository}/resolve/{revision}/{name}?download=true"
         print(f"{repository}: {name} ({item['size']} bytes)", flush=True)
         if "lfs" in item:
+            if spec.get("weight_mirror") == "modelscope":
+                url = f"https://www.modelscope.cn/models/{repository}/resolve/master/{name}"
+            item["transport_url"] = url
             download(url, path, item["lfs"]["sha256"], item["size"])
         else:
             if path.exists():
@@ -72,12 +75,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--registry", type=Path, default=Path("configs/ccocr_models.json"))
     parser.add_argument("--allow-download", action="store_true")
+    parser.add_argument("--weight-mirror", choices=("modelscope",))
     args = parser.parse_args()
     if not args.allow_download:
         parser.error("Model download requires explicit --allow-download")
     registry = json.loads(args.registry.read_text(encoding="utf-8"))
     with ThreadPoolExecutor(max_workers=3) as pool:
-        list(pool.map(snapshot, registry["models"]))
+        list(
+            pool.map(
+                snapshot,
+                [{**spec, "weight_mirror": args.weight_mirror} for spec in registry["models"]],
+            )
+        )
 
 
 if __name__ == "__main__":
