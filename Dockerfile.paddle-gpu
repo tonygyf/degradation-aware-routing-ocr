@@ -1,0 +1,14 @@
+FROM degradation-aware-routing-ocr:ccocr AS paddle-build
+COPY .vendor-build/paddlepaddle_gpu-3.2.2-cp312-cp312-linux_x86_64.whl /tmp/paddle.whl
+COPY requirements.paddle-gpu.lock /tmp/requirements.paddle-gpu.lock
+COPY .vendor-build/deps/ /tmp/wheels/
+RUN echo "b766de54d11fcfe25c7ac339fa2f4154d28a5c8b08df3bf3d55ad349dffbf7e7  /tmp/paddle.whl" | sha256sum -c - \
+    && mv /tmp/paddle.whl /tmp/paddlepaddle_gpu-3.2.2-cp312-cp312-linux_x86_64.whl \
+    && PIP_CONSTRAINT= python -m pip install --target /opt/paddle-gpu --no-cache-dir --no-deps \
+       /tmp/paddlepaddle_gpu-3.2.2-cp312-cp312-linux_x86_64.whl \
+    && PIP_CONSTRAINT= python -m pip install --target /opt/paddle-gpu --no-cache-dir --no-deps \
+       --no-index --find-links=/tmp/wheels --require-hashes --only-binary=:all: -r /tmp/requirements.paddle-gpu.lock
+FROM degradation-aware-routing-ocr:ccocr
+COPY --from=paddle-build /opt/paddle-gpu /opt/paddle-gpu
+ENV PYTHONPATH=/opt/paddle-gpu:/opt/ccocr
+ENV LD_LIBRARY_PATH=/opt/paddle-gpu/nvidia/cuda_runtime/lib:/opt/paddle-gpu/nvidia/cuda_nvrtc/lib:/opt/paddle-gpu/nvidia/cublas/lib:/opt/paddle-gpu/nvidia/cudnn/lib:/opt/paddle-gpu/nvidia/cufft/lib:/opt/paddle-gpu/nvidia/curand/lib:/opt/paddle-gpu/nvidia/cusolver/lib:/opt/paddle-gpu/nvidia/cusparse/lib:/opt/paddle-gpu/nvidia/nvjitlink/lib:${LD_LIBRARY_PATH}

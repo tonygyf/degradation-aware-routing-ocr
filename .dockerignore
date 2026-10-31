@@ -21,3 +21,5 @@ models
 *.onnx
 *.pem
 *.key
+
+.vendor-build/

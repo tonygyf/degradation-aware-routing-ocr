@@ -27,3 +27,19 @@ docker compose run --rm dev bash
 ## 清理
 
 Docker 检查通过后可删除本项目旧 `.venv/`、`.tools/`、`.pytest_cache/`、`.ruff_cache/`、`__pycache__/` 和 `*.egg-info/`。容器禁写 Python 字节码，pytest/ruff 禁用项目缓存。实验输出保留本地且不进入 Git；不要删除真实数据或模型来清理软件缓存。
+
+## 论文真实模型环境
+
+默认 `compose.yaml` 仍是 2 CPU / 4 GiB 的开发环境。真实模型使用独立镜像和覆盖配置，均为 8 CPU / 64 GiB；不修改已有训练容器。
+
+| 覆盖配置 | 用途 |
+|---|---|
+| `compose.ccocr.yaml` | Paddle CPU / Qwen 真实运行环境 |
+| `compose.internvl.yaml` | InternVL 原生接口及独立依赖 |
+| `compose.deepseek.yaml` | DeepSeek 原生接口及 Transformers 4.46.3 独立依赖 |
+| `compose.paddle-gpu.yaml` | Paddle GPU 3.2.2 / CUDA 12.9 独立依赖 |
+| `compose.ccocr-gpu.yaml` | 仅映射已授权宿主 GPU 1，需与对应模型配置叠加 |
+
+GPU 作业只在单卡空闲、UUID 一致且资源检查通过时顺序运行。模型、数据和源码身份以 `configs/ccocr*_gpu.json`、固定 revision 及逐次输出 metadata 为准。镜像构建与导入成功不代表真实推理通过，当前执行状态见 [复现状态](paper-reproduction-status.md)。
+
+文档整理只移动历史 Markdown 和环境快照；源码、Compose、依赖锁与实验目录保留原路径，避免破坏运行和续跑校验。

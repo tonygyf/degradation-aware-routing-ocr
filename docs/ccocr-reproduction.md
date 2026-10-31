@@ -1,6 +1,6 @@
 # IJDAR 2026：公开 CC-OCR 复现
 
-目标论文：[Hallucination-aware Evaluation and Confidence-guided Selective Routing for Hybrid VLM-OCR](https://doi.org/10.1007/s10032-026-00620-7)。作者复现包尚不可得，用户选择先推进公开 CC-OCR。这里实现外部评估 PaddleOCR、Qwen3-VL-8B、ConfRoute(0.90)；不把缺失的 SHC 实验或现有合成 A/B 基线算作复现结果。
+目标论文：[Hallucination-aware Evaluation and Confidence-guided Selective Routing for Hybrid VLM-OCR](https://doi.org/10.1007/s10032-026-00620-7)。作者复现包尚未取得。本页只描述外部 CC-OCR 的数据、模型与运行入口，五系统结果见 [当前结果](ccocr-results.md)；不把缺失的 SHC 实验或现有合成 A/B 基线算作复现结果。
 
 ## 冻结协议
 
@@ -51,22 +51,33 @@ docker compose -f compose.yaml -f compose.ccocr.yaml -f compose.ccocr-gpu.yaml r
 
 日志为本地 `outputs/ccocr-gpu-workflow.log`，观测和评估目录分别为 `outputs/ccocr-gpu-{pilot,full}/`、`outputs/ccocr-gpu-{pilot,full}-eval/`。重复执行拒绝覆盖旧结果；中断的采集可用 `scripts.collect_ccocr` 同一配置加 `--resume`，完成后再评估。
 
-论文表 13 对照值仅作为目标：
+不得为接近论文分数而在这 900 张上选择权重、提示或阈值。作者包缺失意味着不能保证严格复现，必须报告差异。
 
-| 方法 | Eval-Trans | CER | 空输出率 | VLM 调用率 |
-| --- | ---: | ---: | ---: | ---: |
-| PaddleOCR | 0.3386 | 0.7015 | 0.0711 | 0 |
-| Qwen3-VL-8B | 0.7680 | 0.4536 | 0 | 1 |
-| ConfRoute(0.90) | 0.7044 | 0.5018 | 0 | 0.6833 |
+## CPU 就绪检查
 
-不得为接近目标而在这 900 张上选择权重、提示或阈值。作者包缺失意味着无法保证 1:1 或分数接近；必须报告真实差异。
+已有结果不要重新运行覆盖。需要重新检查输入时，以下命令核验冻结清单、900 张原图、OCR 缓存、模型文件和离线处理器，且不初始化 CUDA；`ready: true` 不代表 GPU 推理通过。
 
-## 2026-10-24 运行验证
+```bash
+export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
+export CCOCR_IMAGE_ID=$(docker image inspect degradation-aware-routing-ocr:ccocr --format '{{.Id}}')
+docker compose -f compose.yaml -f compose.ccocr.yaml run --rm -T -e CCOCR_IMAGE_ID dev python -m scripts.preflight_ccocr --output outputs/ccocr-ready-recheck.json
+```
 
-900 张数据及 Paddle det/rec 权重均已完成哈希校验。真实 CPU pilot 在三个子集各取第一张，串行与 3 个进程采集的文本、置信度完全相同；3 张仅验证流程，不能据此判断论文分数是否复现。Qwen 运行库导入通过，权重尚在显式断点下载。新增下载续传、模型身份与哈希、GPU 授权前置检查、空输出中断续跑及指标边界测试。
+## 补充模型与 GPU Paddle
 
-禁用 MKLDNN 的 8 进程试跑完成 60 张后触发本项目 64 GiB 容器内存上限；2 进程、每批 8 张重建的试跑在 129 张后仍触发相同限制。失败位置后的图像为约 3200×2400 的原图，未优化 CPU 卷积路径需要大量内存。改用 SDK 默认的 MKLDNN 后端后，`TotalText/img553.jpg` 原尺寸、默认识别 batch=6 检查成功，约 28.6 秒，采样内存约 2.7 GiB（非峰值测量）。诊断中曾尝试 batch=1，但它改变了 pilot 的部分文本，故正式实验保留 SDK 默认 batch=6，不混用诊断观测。正式实验重新采集，失败日志及旧观测保留本地。
+InternVL / DeepSeek 使用 `configs/ccocr_additional_gpu.json` 与独立的 `compose.internvl.yaml` / `compose.deepseek.yaml`。采集入口 `scripts.collect_additional --model internvl|deepseek --per-subset 1 --output 新目录`；pilot 验证后，`--per-subset 0` 才是 900 张全量。必须使用对应模型镜像，并叠加 `compose.ccocr-gpu.yaml`，在 GPU 1 空闲时顺序执行。
 
-ModelScope 官方模型镜像可显式选用以避开 HF 下载慢的问题，最终仍必须匹配已冻结的 HF 文件 SHA-256；镜像 master 发生变化会被拒绝。现有本地代理的下载探测出现截断，因此保留直接连接，并未修改代理服务。Eval-Trans 已对照固定上游源码，逐图计算完全相同，汇总也保留官方分母 `+1e-9`。
+GPU Paddle 使用 `configs/ccocr_paddle_gpu.json` 与 `compose.paddle-gpu.yaml`；入口 `scripts.collect_paddle_gpu`，同样先 pilot 再全量，复用完整 Qwen 观测并逐图验证身份。采集期间不修改其登记或源码，不并行争用 GPU。
 
-1000 组固定 seed 随机文本与官方宏平均 Eval-Trans 的交叉校验差异为 0（记录在本地 `outputs/reproduction-sources/evaluator-crosscheck.json`）。修正后的全量采集位于 `outputs/ccocr-ocr-mkldnn-full/`，成功后自动触发评估到 `outputs/ccocr-ocr-mkldnn-full-eval/`；等待评估的容器最长运行 4 小时。模型下载对临时网络错误最多重试 4 次，保留续传文件；哈希错误直接拒绝。GPU 1 单卡映射及 BF16 矩阵计算已经通过独立容器检查；此检查不等于 Qwen 实际推理成功。
+五系统完成后的汇总命令（输出文件须不存在）：
+
+```bash
+export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
+docker compose run --rm -T dev python -m scripts.compare_external \
+  --qwen outputs/ccocr-gpu-full/observations.jsonl \
+  --internvl outputs/ccocr-internvl-full/observations.jsonl \
+  --deepseek outputs/ccocr-deepseek-full/observations.jsonl \
+  --output outputs/ccocr-five-system-report.json
+```
+
+此命令使用历史 CPU Paddle 配对缓存；当前 GPU 主对照须将 `--qwen` 改为 `outputs/ccocr-paddle-gpu-full/observations.jsonl`，并指定新的输出文件。两套冻结报告均已生成，勿覆盖。旧运行诊断见 [历史协议](archive/ccocr-protocol-through-2026-10-28.md)。

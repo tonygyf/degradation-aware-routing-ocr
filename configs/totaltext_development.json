@@ -1,0 +1,43 @@
+{
+  "dataset": "Total-Text official training split only",
+  "purpose": "independent academic OCR/VLM routing research; first target is post-upgrade CER regression",
+  "authorization": "User chose public official training splits with source/overlap audit on 2026-10-27",
+  "official_repository": "cs-chan/Total-Text-Dataset",
+  "repository_revision": "59538b936fc7a55025987960270267d8d081e72e",
+  "license": "Total-Text Dataset Research Use Terms v1.0, effective 2026-10-01; non-commercial academic use; underlying image rights remain separate",
+  "license_url": "https://github.com/cs-chan/Total-Text-Dataset/blob/59538b936fc7a55025987960270267d8d081e72e/DATASET_TERMS.md",
+  "official_train_count": 1255,
+  "official_test_count": 300,
+  "external_test_manifest_sha256": "22149779ff2f61d41a12c322a16e2ae90802693c5406d8639810f91f8cc59ad9",
+  "artifacts": [
+    {
+      "role": "images",
+      "google_drive_id": "1bC68CzsSVTusZVvOkk7imSZSbgD1MqK2",
+      "filename": "images.archive",
+      "sha256": "bb2f555b5166deaca0ad04175e5e4b351f4255ab10a78aa47d3f035f7efd1e98",
+      "bytes": 432596071,
+      "hash_source": "observed first official download; no publisher checksum supplied"
+    },
+    {
+      "role": "refined_groundtruth",
+      "google_drive_id": "1-XrQBoU9as1PXaB_0dUrDTJgvGFFOnDE",
+      "filename": "groundtruth.archive",
+      "sha256": "de9427489d140094927e90dd6a77632f325570ceb5b4d1ac04794ae07e59d306",
+      "bytes": 1054841,
+      "hash_source": "observed first official download; no publisher checksum supplied"
+    }
+  ],
+  "approved_for_model_training": false,
+  "status": "downloaded and audited; full-image references and real OCR/VLM observations pending",
+  "audit_summary": {
+    "candidates": 1255,
+    "retained": 1252,
+    "excluded": 3,
+    "split_counts": {
+      "train": 1007,
+      "val": 245
+    }
+  },
+  "confirmed_visual_source_overlap_pairs": 3,
+  "gpu_inference_authorized": false
+}

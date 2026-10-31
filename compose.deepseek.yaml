@@ -1,0 +1,11 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.deepseek
+    image: degradation-aware-routing-ocr:deepseek
+    cpus: 8
+    mem_limit: 64g
+    environment:
+      LOGNAME: ccocr
+      TORCHINDUCTOR_CACHE_DIR: /tmp/torchinductor

@@ -19,13 +19,17 @@ def normalize(text: str) -> str:
 
 def clipped_cer(reference: str, prediction: str) -> float:
     reference, prediction = normalize(reference), normalize(prediction)
+    denominator = max(1, len(reference))
+    # Edit distance is at least the length difference, so clipping is already certain.
+    if abs(len(prediction) - len(reference)) >= denominator:
+        return 1.0
     previous = list(range(len(prediction) + 1))
     for i, a in enumerate(reference, 1):
         current = [i]
         for j, b in enumerate(prediction, 1):
             current.append(min(previous[j] + 1, current[-1] + 1, previous[j - 1] + (a != b)))
         previous = current
-    return min(1.0, previous[-1] / max(1, len(reference)))
+    return min(1.0, previous[-1] / denominator)
 
 
 def eval_trans(reference: str, prediction: str) -> float:

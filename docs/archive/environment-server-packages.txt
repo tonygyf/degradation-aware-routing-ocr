@@ -1,4 +1,4 @@
--e file:///home/gyf/degradation-aware-routing-ocr
+-e .
 iniconfig==2.3.1
 joblib==1.5.2
 numpy==1.26.4

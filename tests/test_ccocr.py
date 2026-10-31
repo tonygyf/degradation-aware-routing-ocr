@@ -3,6 +3,7 @@ import csv
 import hashlib
 import io
 import json
+import random
 import urllib.error
 from types import SimpleNamespace
 
@@ -270,3 +271,55 @@ def test_confroute_rounding_empty_boxes_boundary_and_replay_latency():
     row["ocr"].update(rec_texts=["mismatch"])
     with pytest.raises(ValueError, match="matching lengths"):
         image_confidence(row["ocr"])
+
+
+def test_weight_mirror_does_not_redirect_model_card_images(tmp_path, monkeypatch):
+    from scripts.download_ccocr_models import snapshot
+
+    payload = b"verified artifact"
+    metadata = {
+        "sha": "fixed",
+        "cardData": {"license": "apache-2.0"},
+        "siblings": [
+            {
+                "rfilename": name,
+                "size": len(payload),
+                "lfs": {"sha256": hashlib.sha256(payload).hexdigest()},
+            }
+            for name in ("assets/figure.png", "model.safetensors")
+        ],
+    }
+    monkeypatch.setattr(
+        "urllib.request.urlopen", lambda url, timeout: io.BytesIO(json.dumps(metadata).encode())
+    )
+    urls = {}
+
+    def capture(url, path, digest, size):
+        urls[path.name] = url
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+
+    monkeypatch.setattr("scripts.download_ccocr_models.download", capture)
+    snapshot(
+        {
+            "repository": "owner/model",
+            "revision": "fixed",
+            "license": "apache-2.0",
+            "directory": str(tmp_path),
+            "weight_mirror": "modelscope",
+        }
+    )
+    assert urls["figure.png"].startswith("https://huggingface.co/")
+    assert urls["model.safetensors"].startswith("https://www.modelscope.cn/")
+
+
+def test_clipped_cer_length_bound_matches_independent_edit_counts():
+    from src.evaluation.metrics import edit_counts
+
+    rng = random.Random(42)
+    for _ in range(1000):
+        ref, pred = ("".join(rng.choices("ab 漢字.,\n\t", k=rng.randrange(30))) for _ in range(2))
+        normalized_ref, normalized_pred = " ".join(ref.split()), " ".join(pred.split())
+        edits, _, length = edit_counts(normalized_ref, normalized_pred)
+        assert clipped_cer(ref, pred) == min(1, edits / max(1, length))
+    assert clipped_cer("A", "A" * 100_000) == 1

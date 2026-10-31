@@ -1,0 +1,38 @@
+{
+  "paper": "https://doi.org/10.1007/s10032-026-00620-7",
+  "paper_checkpoint_identity_known": false,
+  "identity_note": "Pinned official candidates; author checkpoint hashes unavailable.",
+  "data_authorization": "Public frozen CC-OCR research reproduction requested by user; configs/ccocr_public.json",
+  "download_authorization": "2026-10-28 user requested continued full-paper experiments; explicit download after revision/license/resource registration.",
+  "resources": {
+    "cpu_cores": 2,
+    "ram_gib": 4,
+    "download_disk_gib": 33,
+    "gpu_authorized": false,
+    "inference_plan": "No inference from this registry; review adapters and dependencies first, then use one idle GPU sequentially within 8 CPU / 64 GiB RAM. Estimated BF16 VRAM 24-48 GiB InternVL and 12-32 GiB DeepSeek; validate with pilot."
+  },
+  "models": [
+    {
+      "role": "internvl",
+      "repository": "OpenGVLab/InternVL3_5-8B",
+      "revision": "9bb6a56ad9cc69db95e2d4eeb15a52bbcac4ef79",
+      "license": "apache-2.0",
+      "directory": "models/ccocr/internvl",
+      "repository_bytes": 17072800269,
+      "paper_prompt_not_adapter_serialization": "Extract all text from this image. Provide the text exactly as it appears, maintaining the original layout and order.",
+      "inference_ready": false,
+      "custom_code_status": "Downloader excludes Python files; custom code must be separately pinned and reviewed before loading"
+    },
+    {
+      "role": "deepseek",
+      "repository": "deepseek-ai/DeepSeek-OCR-2",
+      "revision": "aaa02f3811945a91062062994c5c4a3f4c0af2b0",
+      "license": "apache-2.0",
+      "directory": "models/ccocr/deepseek",
+      "repository_bytes": 6789306112,
+      "paper_prompt_not_adapter_serialization": "<image> + Free OCR.",
+      "inference_ready": false,
+      "custom_code_status": "Downloader excludes Python files; custom code must be separately pinned and reviewed before loading"
+    }
+  ]
+}

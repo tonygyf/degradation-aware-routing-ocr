@@ -1,4 +1,6 @@
-# 实验协议与真实推理准备
+# A/B/MLP 原型协议（历史接口）
+
+> 本页描述早期原型，包含与论文不同的 CER 归一化和聚合口径；不用于填报论文结果。当前论文状态见 [复现状态](paper-reproduction-status.md)，真实实验入口见 [CC-OCR 协议](ccocr-reproduction.md)。
 
 ## 指标（A/B 共用）
 
@@ -20,7 +22,7 @@
 
 自制 60 个 SVG 只验证管线，其中含高置信度错误、低置信度正确、无检测和 VLM 造字等失败模式；预测与延迟是人工设计的。不要用它选择科研模型、宣称优于 A，或证明低光照泛化。SVG 不是当前真实接口的 PNG/JPEG/WebP 输入。
 
-## 真实模型登记与采集（尚未执行）
+## 原型真实模型登记与采集接口（历史说明）
 
 1. 将 `configs/models.example.json` 复制为独立登记文件，填写真实数据授权/来源/划分、模型 ID、不可变 revision/文件哈希、模型许可、服务版本、资源与设备预留。完成审核后才设置 reviewed 和 data_authorized。模板没有预填虚构模型 revision。
 2. 原软件基线 OCR 接口目标为 `paddleocr==3.2.0`、CPU `paddlepaddle==3.2.0`，只接收已有本地 detector/recognizer 目录，关闭方向/矫正辅助模型。**适配器只做了伪响应契约测试，尚未验证真实版本兼容性**。真实依赖需通过独立 Docker 构建配置与锁文件维护，使用 Compose `dev` 服务覆盖配置运行，不再建立宿主虚拟环境。IJDAR 论文复现需要单独对齐 PaddleOCR 3.4.0，不能将旧适配器的 mock 检查当作版本兼容证据。
@@ -29,8 +31,9 @@
 5. 用少量已授权 PNG/JPEG/WebP 写 raw 清单并实际计算文件 SHA-256，再冻结分组划分。原图/GT/缓存可能含敏感文本，只保存在私有目录；不要上传 Git。
 
 ```bash
-python -m scripts.split_manifest --input data/raw/unsplit.jsonl --output data/raw/split42.jsonl
-python -m src.cache --manifest data/raw/split42.jsonl --registry configs/models.reviewed.json --output data/cache/pilot-001 --allow-real
+export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
+docker compose run --rm dev python -m scripts.split_manifest --input data/raw/unsplit.jsonl --output data/raw/split42.jsonl
+docker compose run --rm dev python -m src.cache --manifest data/raw/split42.jsonl --registry configs/models.reviewed.json --output data/cache/pilot-001 --allow-real
 ```
 
 `src.cache` 是**全量反事实采集**：对每张图调用 OCR 和 VLM，用于训练标签与离线策略比较，实际采集调用率为 100%，不能把 replay 中的选择率当作采集时节省的开销。已有缓存不重复采集；输出目录必须不存在，失败保留 partial.jsonl 和登记信息，不自动恢复/覆盖。真实 adapter 异常直接终止该次运行，预算指标只在完整离线评估时生成。

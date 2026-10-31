@@ -15,6 +15,7 @@ def test_cached_ocr_requires_matching_frozen_identity(tmp_path):
         "reference": "A",
         "split": "test",
         "synthetic": False,
+        "subset": "TotalText",
         "license": "research",
         "ocr": {"text": "B", "confidences": [0.9], "latency_ms": 1},
     }
@@ -27,6 +28,7 @@ def test_cached_ocr_requires_matching_frozen_identity(tmp_path):
         ("group_id", "other"),
         ("synthetic", True),
         ("split", "val"),
+        ("subset", "InverseText"),
     ):
         with pytest.raises(ValueError, match="does not match frozen"):
             cached_ocr(path, [{**row, field: changed}])
@@ -70,6 +72,7 @@ def test_gpu_workflow_stops_after_failed_pilot(monkeypatch):
 
     calls = []
     monkeypatch.setattr(run_ccocr_gpu, "inputs_ready", lambda *args: True)
+    monkeypatch.setattr(run_ccocr_gpu, "check_inputs", lambda *args: {})
 
     def fail(command, check):
         calls.append(command)

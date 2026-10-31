@@ -173,10 +173,26 @@ def cached_ocr(path, rows):
         source = cached.get(row["id"])
         if source is None or any(
             source.get(key) != row.get(key)
-            for key in ("image_sha256", "reference", "group_id", "split", "synthetic")
+            for key in ("image_sha256", "reference", "group_id", "split", "synthetic", "subset")
         ):
             raise ValueError(f"OCR cache does not match frozen sample: {row['id']}")
     return cached
+
+
+def verify_model(model: dict) -> dict:
+    root = Path(model["directory"])
+    record = json.loads((root / "download-provenance.json").read_text())
+    if record["status"] != "verified" or record["revision"] != model["revision"]:
+        raise ValueError(f"Unverified model: {model['role']}")
+    if not record["files"]:
+        raise ValueError(f"Empty model snapshot: {model['role']}")
+    for artifact in record["files"]:
+        name = Path(artifact["rfilename"])
+        if name.is_absolute() or ".." in name.parts:
+            raise ValueError("Invalid model artifact path")
+        if file_hash(root / name) != artifact["local_sha256"]:
+            raise ValueError(f"Model artifact changed: {model['role']}/{name}")
+    return record
 
 
 def collect(args) -> None:
@@ -191,14 +207,7 @@ def collect(args) -> None:
     models = {model["role"]: model for model in registry["models"]}
     roles = ("detector", "recognizer", "vlm") if args.mode == "both" else ("detector", "recognizer")
     for role in roles:
-        model = models[role]
-        root = Path(model["directory"])
-        record = json.loads((root / "download-provenance.json").read_text())
-        if record["status"] != "verified" or record["revision"] != model["revision"]:
-            raise ValueError(f"Unverified model: {role}")
-        for artifact in record["files"]:
-            if file_hash(root / artifact["rfilename"]) != artifact["local_sha256"]:
-                raise ValueError(f"Model artifact changed: {role}/{artifact['rfilename']}")
+        verify_model(models[role])
     rows = [json.loads(line) for line in args.manifest.read_text().splitlines() if line]
     if any(row["split"] != "test" or row.get("synthetic") is not False for row in rows):
         raise ValueError("Only the real frozen external test manifest is allowed")

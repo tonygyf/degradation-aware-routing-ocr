@@ -1,0 +1,4 @@
+FROM degradation-aware-routing-ocr:ccocr
+COPY requirements.internvl.lock /tmp/requirements.internvl.lock
+RUN PIP_CONSTRAINT= python -m pip install --target /opt/ccocr --no-cache-dir \
+    --no-deps --require-hashes --only-binary=:all: -r /tmp/requirements.internvl.lock

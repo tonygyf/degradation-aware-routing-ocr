@@ -1,0 +1,21 @@
+{
+  "created_utc": "2026-10-24T08:58:55.468517+00:00",
+  "platform": "Linux-6.17.0-40-generic-x86_64-with-glibc2.39",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "packages": {
+    "numpy": "1.26.4",
+    "scikit-learn": "1.7.2",
+    "paddleocr": null,
+    "paddlepaddle": null,
+    "torch": null,
+    "transformers": null,
+    "pytest": "8.4.2",
+    "ruff": "0.14.2"
+  },
+  "gpu": {
+    "returncode": 0,
+    "stdout": "index, name, memory.total [MiB], memory.used [MiB], utilization.gpu [%]\n0, NVIDIA RTX 6000D, 85651 MiB, 187 MiB, 0 %\n1, NVIDIA RTX 6000D, 85651 MiB, 14 MiB, 0 %\n2, NVIDIA RTX 6000D, 85651 MiB, 24322 MiB, 72 %\n3, NVIDIA RTX 6000D, 85651 MiB, 14 MiB, 0 %\n",
+    "stderr": ""
+  },
+  "archive_note": "Historical environment only; host paths and unrelated process listings omitted during 2026-10-31 cleanup."
+}

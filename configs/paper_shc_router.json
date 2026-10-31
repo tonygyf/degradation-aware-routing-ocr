@@ -1,0 +1,25 @@
+{
+  "paper": "https://doi.org/10.1007/s10032-026-00620-7",
+  "feature_set": "requested",
+  "target": "route_benefit",
+  "regularization_C": 1.0,
+  "standardize": true,
+  "solver": "lbfgs",
+  "max_iter": 1000,
+  "seed": 42,
+  "threshold": 0.459,
+  "threshold_source": "Published Supplementary Table 15, requested feature row; not refitted on local Test",
+  "author_optimizer_and_scaler_verified": false,
+  "unverified_choices": [
+    "C=1.0",
+    "StandardScaler",
+    "lbfgs",
+    "max_iter=1000",
+    "empty confidence mean/geometric mean=0",
+    "average precision implementation",
+    "class_weight=None",
+    "random_state=42 for learned fitting"
+  ],
+  "provided_features": "text_density must be supplied with ocr.paper_feature_provenance; the paper does not specify its exact definition",
+  "threshold_target": "route_benefit"
+}

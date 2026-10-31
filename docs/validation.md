@@ -1,61 +1,15 @@
-# 第一阶段交付验收
+# 软件验证
 
-验收日期：2026-10-24（Asia/Shanghai）。下文为迁移 Docker 前的历史验收；当前统一开发入口见 [Docker 环境](environment.md)。
+最新完整检查：Docker CPU 环境 **95 tests passed**，`ruff check .`、`ruff format --check .`、`python -m scripts.smoke` 均通过。本次合并论文分析入口的重复 JSONL 校验与报告写入；空输入、未明确标记真实数据的输入和合成输入均被拒绝。报告以独占创建方式写入，SHC 单系统评估也不再覆盖旧报告。新增检查覆盖空输入、Unicode 与已有证据保护。日志：`outputs/project-cleanup-checks-20261031.log`。
 
-| 检查 | Windows Python 3.10.11 | Ubuntu Python 3.12.3 |
-|---|---|---|
-| `uv sync --frozen --group dev` | 成功，包括 editable 构建 | 成功，包括 editable 构建 |
-| `uv pip check` | 兼容 | 兼容 |
-| `ruff check .` | 通过 | 通过 |
-| `ruff format --check .` | 通过（22 个 Python 文件） | 通过（22 个 Python 文件） |
-| `python -m pytest -q` | 19 passed | 19 passed |
-| `python -m scripts.smoke` | A/B/MLP 全部完成 | A/B/MLP 全部完成 |
+检查覆盖指标、路由边界、数据身份与划分、冻结模型校验、外部系统配对、原型和采集入口。合成样例与 mock 延迟只验证软件，科研结果及验收结论见 [复现状态](paper-reproduction-status.md) 和 [真实结果](ccocr-results.md)。
 
-测试覆盖 CER/Unicode/空参考、阈值边界/无检测、分组与内容跨划分泄漏、重复 ID/非有限置信度、训练集约束、GT/VLM 不进入路由特征、固定种子重复拟合、调用与成本预算/惰性 VLM、幻觉代理口径、真实入口审核与显式开关、图像哈希门禁、缓存采集流程、Paddle3/Qwen 的 mock API 契约及独立运行目录。
+复查命令见 [项目 README](../README.md)。基线代码变更需完成全部四项检查；文档整理检查本地链接和归档完整性。
 
-Paddle/Qwen 的测试使用伪响应，不是实际模型推理。loopback Qwen 请求禁用环境代理与 HTTP 重定向；没有向外部 API 发送图像。
+2026-10-24 至 25 的跨平台、Docker 迁移及早期准备记录见 [历史验收](archive/validation-2026-10-24-to-25.md)。历史虚拟环境命令不再作为开发入口。
 
-## 人工样例的管线结果
+长度差快速判定与独立编辑距离实现的 1,000 组随机文本检查通过；另在五系统各 900 张真实观测上重算，全部指标及重复诊断与原报告完全一致。证据 `outputs/cer-length-bound-crosscheck.json` 保存两版评估器和原报告哈希，原代码保留在 `outputs/reproduction-sources/ccocr-evaluation-before-length-bound.py`。这证明该优化保持现有结果，不证明作者配置一致。
 
-下表只验证软件行为。16 个 test 样例、210 个参考字符，Windows 与 Ubuntu 的下列数值一致；没有据此选择“最佳”方案。
+内部 Cal 固定候选回放的软件检查已通过：0.80/0.85/0.90/0.95、置信度舍入与边界、无框、逐图串行延迟、无 Test 调参及合成输入拒绝。没有作者真实 Cal 数据，未生成或宣称科研 Cal 分数。
 
-| 策略 | CER | VLM 选择次数/率 | 平均缓存模拟延迟 | 声明成本单位 |
-|---|---:|---:|---:|---:|
-| A 固定阈值 | 0.123810 | 12 / 75% | 102 ms | 12 |
-| B LogReg | 0.114286 | 14 / 87.5% | 117 ms | 14 |
-| B MLP | 0.142857 | 8 / 50% | 72 ms | 8 |
-
-这是已知 mock 预测的回放。延迟为人工设置，不能用于硬件性能比较；VLM“调用”表示访问选定缓存。实际 routing_ms、wall time 各次不同，保存在实验 metrics.json。
-
-实际输出：服务器 `outputs/smoke/`；Windows `outputs/smoke/` 及服务器结果副本 `outputs/server-smoke/`。每次独立目录保留配置、split ID、输入哈希、Git 状态、router 参数、日志与预测。
-
-## 环境保护与 Skills
-
-主科研 GPU 2 的 Python PID 4080287 在验证后仍存在，显存占用 24,300 MiB；本项目没有创建 CUDA 推理进程。原有容器和两个科研项目未修改，既有 Git 改动保留。所有包只装在新项目 `.venv`。
-
-两个 Skill 已在服务器 `/home/gyf/.codex/skills/{ponytail,grill-me}/` 安装，SHA-256 与 Windows 现有文件和固定版本来源一致，见 skills.md。只安装 Markdown，没有运行第三方脚本或插件 hooks。
-
-## 明确未完成
-
-- 没有下载权重、启动 Qwen 服务或跑真实 Paddle/GPU 推理；真实模型环境与完整依赖锁尚待基于实际平台验证。
-- 没有导入既有实验室数据；授权、源图分组、模型 checkpoint revision 和资源预留必须先登记。
-- C/D 只有接口；尚未实现退化特征、区域分配和区域输出合并，也没有科研有效性结论。
-- 真实失败重试/恢复、token 级预算、线上服务延迟、近重复人工审计与可信幻觉标注留给后续实验。
-
-下一步先执行 protocol.md 的小规模真实接口验证，再按 roadmap.md 建立同预算对比和 C/D 消融。
-
-## Docker 迁移验收（2026-10-24）
-
-通过本项目 Compose `dev` 服务在容器中执行：
-
-| 检查 | 结果 |
-|---|---|
-| `docker compose build dev` | 成功；固定基础镜像摘要，依赖哈希校验与 `pip check` 通过 |
-| `python -m pytest -q` | 19 passed |
-| `ruff check .` | 通过 |
-| `ruff format --check .` | 22 个文件格式正确 |
-| `python -m scripts.smoke` | A/B/MLP 全部完成，样例指标与原验收一致 |
-
-已删除本项目旧 `.venv`、`.tools`（含下载包、安装暂存和 uv 缓存）、pytest/ruff 缓存、Python 字节码和 editable 包元数据，约 607 MiB。依赖锁、实验配置、fixtures、历史验收记录和本地实验输出保留。后续检查同样使用 Docker，避免重新创建宿主虚拟环境。
-
-此验收仍只证明软件流程可运行，没有运行真实模型或下载权重。
+2026-10-31：新增论文分析模块的边界、训练隔离、目标/阈值一致性、Test 不选提示、样本身份配对与源图过滤测试通过。CPU 冒烟覆盖组合及 JSON 序列化，使用合成数据；公布人工计数的复算另标为算术验证，不算新人工实验。详见 [实现范围](paper-implementation.md)。

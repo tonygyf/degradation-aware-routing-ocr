@@ -1,0 +1,106 @@
+{
+  "paper": "https://doi.org/10.1007/s10032-026-00620-7",
+  "paper_checkpoint_identity_known": false,
+  "identity_note": "Pinned official candidates; author checkpoint hashes unavailable.",
+  "data_authorization": "Public frozen CC-OCR research reproduction requested by user; configs/ccocr_public.json",
+  "download_authorization": "2026-10-28 user requested continued full-paper experiments; explicit download after revision/license/resource registration.",
+  "resources": {
+    "cpu_cores": 8,
+    "ram_gib": 64,
+    "gpu_authorized": true,
+    "authorization": {
+      "date": "2026-10-28",
+      "scope": "Full-paper reproduction, one idle GPU sequentially",
+      "host_gpu_index": 1,
+      "host_gpu_uuid": "GPU-b7840eb5-b19b-62cc-0ddd-b09bd56c4309"
+    },
+    "min_free_vram_mib": 40960
+  },
+  "models": [
+    {
+      "role": "internvl",
+      "repository": "OpenGVLab/InternVL3_5-8B",
+      "revision": "9bb6a56ad9cc69db95e2d4eeb15a52bbcac4ef79",
+      "license": "apache-2.0",
+      "directory": "models/ccocr/internvl",
+      "repository_bytes": 17072800269,
+      "paper_prompt_not_adapter_serialization": "Extract all text from this image. Provide the text exactly as it appears, maintaining the original layout and order.",
+      "custom_code_status": "Pinned source hashes verified; CPU imports passed. DeepSeek eval_mode=True returns before output eval/render paths.",
+      "custom_code_files": [
+        {
+          "rfilename": "configuration_intern_vit.py",
+          "local_sha256": "6530df52748e4f7766568825e1d11f55dfa6cc421990020a640c548dc6cd2646"
+        },
+        {
+          "rfilename": "configuration_internvl_chat.py",
+          "local_sha256": "e9fdff47225fd380d940a4a2b6818b303fd2a5fdddf44fce0a75b05a4beb1539"
+        },
+        {
+          "rfilename": "conversation.py",
+          "local_sha256": "b1b9f280e9cb9211e519e2b8071002b57cc742aadb2f49b05fa674ee3c7d83ee"
+        },
+        {
+          "rfilename": "modeling_intern_vit.py",
+          "local_sha256": "a33ec11c517041c7fcbaaff3d736d846498468efaf4a64400a89d55132d5f638"
+        },
+        {
+          "rfilename": "modeling_internvl_chat.py",
+          "local_sha256": "ec972dd3d1c7f5da06455034d5cfe54968a9555dff60804edee9a7fb5759db34"
+        }
+      ],
+      "prompt": "Extract all text from this image. Provide the text exactly as it appears, maintaining the original layout and order.",
+      "settings": {
+        "max_new_tokens": 2048,
+        "max_tiles": 12,
+        "tile_size": 448,
+        "use_flash_attn": true,
+        "do_sample": false,
+        "num_beams": 1
+      },
+      "configuration_caveat": "Greedy and P0 follow paper. Preprocessing, output cap, backend and native wrapper details are official-candidate choices, not author-verified settings."
+    },
+    {
+      "role": "deepseek",
+      "repository": "deepseek-ai/DeepSeek-OCR-2",
+      "revision": "aaa02f3811945a91062062994c5c4a3f4c0af2b0",
+      "license": "apache-2.0",
+      "directory": "models/ccocr/deepseek",
+      "repository_bytes": 6789306112,
+      "paper_prompt_not_adapter_serialization": "<image> + Free OCR.",
+      "custom_code_status": "Pinned source hashes verified; CPU imports passed. DeepSeek eval_mode=True returns before output eval/render paths.",
+      "custom_code_files": [
+        {
+          "rfilename": "configuration_deepseek_v2.py",
+          "local_sha256": "6ab21f29a4722e26fa28c8e0d4277591689a598df17cf6c712330e8f62b3fc7c"
+        },
+        {
+          "rfilename": "conversation.py",
+          "local_sha256": "ec7b6ce89bcda643de1f43269ffa66a7b2e65dc3ed30e427958f776546b4ba03"
+        },
+        {
+          "rfilename": "deepencoderv2.py",
+          "local_sha256": "562e4da383b7ba5ef5db79b5ddfb705c649a80044b99122fe4d5d42c16284193"
+        },
+        {
+          "rfilename": "modeling_deepseekocr2.py",
+          "local_sha256": "4166e8f014250143e257f48fb4eaa57a2ef49fa6ad375ecc016bc7d262fc7160"
+        },
+        {
+          "rfilename": "modeling_deepseekv2.py",
+          "local_sha256": "69184a0493d1fdac21c360f9f9eabc5b5af3188e0265df44cfaeafc44f9095e3"
+        }
+      ],
+      "prompt": "<image>\nFree OCR.",
+      "settings": {
+        "base_size": 1024,
+        "image_size": 768,
+        "crop_mode": true,
+        "eval_mode": true,
+        "save_results": false,
+        "max_new_tokens_upstream": 8192,
+        "no_repeat_ngram_size_upstream": 35
+      },
+      "configuration_caveat": "Greedy and P0 follow paper. Preprocessing, output cap, backend and native wrapper details are official-candidate choices, not author-verified settings."
+    }
+  ]
+}

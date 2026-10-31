@@ -1,0 +1,21 @@
+{
+  "created_utc": "2026-10-24T08:56:09.778628+00:00",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]",
+  "packages": {
+    "numpy": "1.26.4",
+    "scikit-learn": "1.7.2",
+    "paddleocr": null,
+    "paddlepaddle": null,
+    "torch": null,
+    "transformers": null,
+    "pytest": "8.4.2",
+    "ruff": "0.14.2"
+  },
+  "gpu": {
+    "returncode": 0,
+    "stdout": "index, name, memory.total [MiB], memory.used [MiB], utilization.gpu [%]\n0, NVIDIA GeForce RTX 4060 Laptop GPU, 8188 MiB, 864 MiB, 7 %\n",
+    "stderr": ""
+  },
+  "archive_note": "Historical environment only; host paths and unrelated process listings omitted during 2026-10-31 cleanup."
+}

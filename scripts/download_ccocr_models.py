@@ -48,7 +48,9 @@ def snapshot(spec: dict) -> None:
         url = f"https://huggingface.co/{repository}/resolve/{revision}/{name}?download=true"
         print(f"{repository}: {name} ({item['size']} bytes)", flush=True)
         if "lfs" in item:
-            if spec.get("weight_mirror") == "modelscope":
+            if spec.get("weight_mirror") == "modelscope" and name.endswith(
+                (".safetensors", ".pdiparams")
+            ):
                 url = f"https://www.modelscope.cn/models/{repository}/resolve/master/{name}"
             item["transport_url"] = url
             download(url, path, item["lfs"]["sha256"], item["size"])

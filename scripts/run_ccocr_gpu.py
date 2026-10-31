@@ -8,6 +8,8 @@ import sys
 import time
 from pathlib import Path
 
+from scripts.preflight_ccocr import check_inputs
+
 REGISTRY = Path("configs/ccocr_models_gpu.json")
 OCR = Path("outputs/ccocr-ocr-mkldnn-full/observations.jsonl")
 
@@ -41,6 +43,7 @@ def main():
             flush=True,
         )
         time.sleep(30)
+    check_inputs(REGISTRY, Path("data/raw/ccocr/manifest.jsonl"), OCR)
     for stage, limit in (("pilot", 1), ("full", 0)):
         output = Path(f"outputs/ccocr-gpu-{stage}")
         subprocess.run(
